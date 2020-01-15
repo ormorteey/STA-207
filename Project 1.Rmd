@@ -1,0 +1,45 @@
+---
+title: "Project 1"
+author: "Omotayo Abdul-Hakeem"
+date: "1/9/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(pacman)
+p_load(MASS,car, AER, arsenal)
+```
+Task 7.
+
+```{r load data}
+data(STAR)
+data = STAR
+data_backup = data
+star1.f <- as.factor(data$star1)
+model = lm(data$math1 ~ star1.f)
+summary(aov(model, data = data))
+```
+Tasks
+=========
+1) Install the AER package and load the STAR dataset.
+2) Explore this dataset and generate summary statistics (in forms of tables or plots) that you find informative, and explain them.
+3) Write down a one-way ANOVA model to study the effects of class types on the math scaled scores. Explain your notation.
+4) Explain why your model is appropriate for this task on this data set. You may want to include statistics and plots in your explanation.
+5) Fit the model you choose in Task 3 and show your fits in the report.
+6) Conduct model diagnostic and/or sensitivity analysis.
+7) Test whether there is a difference in the math scaled score in 1st grade across students in different class types. Justify your choice of test.
+8) Discuss whether you are able to make any causal statements based on your analysis.
+In any of these tasks, if a statistical method is employed, you need to clearly state the model and justify your choice.
+
+Hypothesis:
+$H_0$: All class sizes have the same effect.
+$H_a$: Not all class sizes have the same effect.
+Decision: We fail to accept $H_0$.
+
+Now we’ve found that there is a significant difference among the class types.  But which class type can be said to be different and which class types are not distinguishable?  To understand this, we obtain the Tukey's family-wise significance level 0.05.
+```{r compareint}
+TukeyHSD(aov(model, data = data))
+```
+
+So at family-wise significance level 0.05, we observe that the means for each class type is different, as zero is not contained in the respective intervals.
