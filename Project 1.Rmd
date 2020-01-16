@@ -8,17 +8,16 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(pacman)
-p_load(MASS,car, AER, arsenal)
+p_load(MASS,car, AER, arsenal, kableExtra,DescTools)
 ```
 Task 7.
 
-```{r load data}
+```{r echo=F, message = FALSE}
 data(STAR)
 data = STAR
 data_backup = data
 star1.f <- as.factor(data$star1)
 model = lm(data$math1 ~ star1.f)
-summary(aov(model, data = data))
 ```
 Tasks
 =========
@@ -32,14 +31,38 @@ Tasks
 8) Discuss whether you are able to make any causal statements based on your analysis.
 In any of these tasks, if a statistical method is employed, you need to clearly state the model and justify your choice.
 
-Hypothesis:
-$H_0$: All class sizes have the same effect.
-$H_a$: Not all class sizes have the same effect.
-Decision: We fail to accept $H_0$.
 
-Now we’ve found that there is a significant difference among the class types.  But which class type can be said to be different and which class types are not distinguishable?  To understand this, we obtain the Tukey's family-wise significance level 0.05.
-```{r compareint}
+Task 7.
+Our hypothesis is that all class sizes have the same effect on the math scaled scores. From the result of our analysis of variance of the math scaled scores for the grade 1 pupils, we decide our data does not provide evidence towards the hypothesis. Thus, we fail to accept the hypothesis. This implies there are significant differences in the average math scaled scores for the class types.  However, which class type can be said to be different and which class types are not distinguishable?  To understand this, we perform a pairwise comparison of the means of the class types. In this project we employ the both Tukey and Scheffe method for multiple comparison. we obtain the Tukey and Scheffe family-wise significance level of 0.05. 
+```{r echo=FALSE, message=FALSE, result=FALSE, include=FALSE}
+ScheffeTest(aov(model, data = data), which="star1.f")
 TukeyHSD(aov(model, data = data))
 ```
+We observe that there the class type means are different. We present the results from the Scheffe's method in the table below.We chose the Scheffe's method since it is more appropriate for unbalanced data, of which our data is one. 
 
-So at family-wise significance level 0.05, we observe that the means for each class type is different, as zero is not contained in the respective intervals.
+```{r echo=F}
+mean_diff = c(13.403299,9.052562,4.350737)
+mean_low = c(10.203016,12.338295,1.301121)
+mean_up = c(16.603581,5.766828,7.400353)
+mean_mat = matrix(c(mean_diff,mean_low,mean_up), nrow = 3, ncol = 3)
+row.names(mean_mat) = c("Small - Regular", "Small - Regular/aide", "Regular/aide - Regular")
+colnames(mean_mat)= c("mean difference", "confidence interval lower bound", "confidence interval upper bound" )
+kable(mean_mat, digits = 2, format = "pandoc") 
+```
+
+From the table, we can see that on average, the students in small class types performed better than those in the regular class type with or without aide.
+
+Task 8.
+
+In order to go beyond the vast evidence that suggests students in the small class type do have a better math scaled score than other class types, we investigate the randomization process at the heart of project STAR.
+
+1. Selection of Schools: Schools were properly spread out across the Tennessee.Schools from inner cities, urban, suburban and rural arears were all participants in the project. All schools from the Tennesse school systems were invited to participate. There were provisions for additional costs for project teachers and teacher aides, and that local systems would furnish any additional classroom space needed.
+
+2. Hawthrone Effect:Some non-STAR elemenentary schools were choosen as comparison schools to ascertain if there is any alteration of behavior by the subjects of project STAR due to their awareness of being observed. 22 comparison schools with 51 regular class size were drawn from 17 STAR school systems. This totals into approximately 1,100 students. The students in the comparison schools were administered the same tests as the project schools.
+
+3. Selection of Teachers and Students: Teachers in participating school were required to be certified for their grade levels. Participating schools randomly assigned teachers and students to different class types.
+
+4. Voluntary Pariticipation: Students, teachers and schools participating in star are not to receive fewer services than if they weren't participating.
+
+
+With the three randomization, one could potentially argue that most if not all major cofounding conditions are taking care of. Thus, one could suggest the obeserved association with respect to the math scaled score is majorly an effect of  class sizes. 
