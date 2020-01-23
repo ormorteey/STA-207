@@ -33,7 +33,11 @@ In any of these tasks, if a statistical method is employed, you need to clearly 
 
 
 Task 7.
-Our hypothesis is that all class sizes have the same effect on the math scaled scores. From the result of our analysis of variance of the math scaled scores for the grade 1 pupils, we decide our data does not provide evidence towards the hypothesis. Thus, we fail to accept the hypothesis. This implies there are significant differences in the average math scaled scores for the class types.  However, which class type can be said to be different and which class types are not distinguishable?  To understand this, we perform a pairwise comparison of the means of the class types. In this project we employ the both Tukey and Scheffe method for multiple comparison. we obtain the Tukey and Scheffe family-wise significance level of 0.05. 
+We now investigate the hypothesis that all class sizes have the same effect on the math scaled scores for grade 1. We define our hypothesis as
+
+$H_0$: All class sizes have equal math scaled scores mean for grade 1 VS $H_a$: Not all class sizes have equal math scaled scores mean for grade 1.
+
+From the result of our analysis of variance of the math scaled scores for the grade 1 pupils, we decide our data does not provide evidence towards the null hypothesis. Thus, we reject the null hypothesis. This implies there are significant differences in the average math scaled scores for the class types.  However, which class type can be said to be different and which class types are not distinguishable?  To understand this, we perform a pairwise comparison of the means of the class types. We obtain Scheffe family-wise significance level of 0.05. 
 ```{r echo=FALSE, message=FALSE, result=FALSE, include=FALSE}
 ScheffeTest(aov(model, data = data), which="star1.f")
 TukeyHSD(aov(model, data = data))
@@ -41,16 +45,17 @@ TukeyHSD(aov(model, data = data))
 We observe that there the class type means are different. We present the results from the Scheffe's method in the table below.We chose the Scheffe's method since it is more appropriate for unbalanced data, of which our data is one. 
 
 ```{r echo=F}
-mean_diff = c(13.403299,9.052562,4.350737)
-mean_low = c(10.203016,12.338295,1.301121)
-mean_up = c(16.603581,5.766828,7.400353)
-mean_mat = matrix(c(mean_diff,mean_low,mean_up), nrow = 3, ncol = 3)
+mean_diff = c(13.40,9.05,4.35)
+mean_low = c(10.20,12.34,1.30)
+mean_up = c(16.60,5.77,7.40)
+mean_pval = c("<2e-16","1.4e-10" , "0.0023" )
+mean_mat = matrix(c(mean_diff,mean_low,mean_up,mean_pval), nrow = 3, ncol = 4)
 row.names(mean_mat) = c("Small - Regular", "Small - Regular/aide", "Regular/aide - Regular")
-colnames(mean_mat)= c("mean difference", "confidence interval lower bound", "confidence interval upper bound" )
-kable(mean_mat, digits = 2, format = "pandoc") 
+colnames(mean_mat)= c("mean difference", "confidence interval lower bound", "confidence interval upper bound", "Adj. P-values" )
+kable(mean_mat, format = "pandoc") 
 ```
 
-From the table, we can see that on average, the students in small class types performed better than those in the regular class type with or without aide.
+From the table, we can see that on average, the students in small class types performed better than those in the regular class type with or without aide. Also considering the adjusted P-values, these differences are significant with a 95% family-wise confidence level.
 
 Task 8.
 
