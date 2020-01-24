@@ -1,0 +1,69 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+***
+Report ID: Team8_2
+
+Overall score: 9/10
+
+Project: 1
+
+*** 
+
+&nbsp;
+
+**1. Please summarize this report in your own words (up to 200 words).** 
+
+The report focused on analyzing the dataset from the Student/Teacher Achievement Ratio (STAR) Project. The primary question considered in the project is whether class type affects the math scores in the Stanford Achievement Test (SAT) of first-grade students in Project STAR. The report did not t examine class size effects on a subset of students (male/female, or black/white) or demographics (inner cities, urban and rural, etc.). The report stated there is a considerably small ratio of missing values. These missing values were assumed to be random, thus, ignored. A one-way ANOVA model was fitted to the data. Various diagnostics/sensitivity analysis such as Levene’s test for homoscedasticity and quantile-quantile plots analysis was performed on the model. The model was found to be suitable by the authors. The authors found a significant difference in first-grade students’ mathematics performance on the SAT between class size, with students in smaller classes outperforming students in larger classes on average. It was concluded that due to the experimental design and how randomly students and teachers are assigned to different class sizes, some causal statements could be made.
+
+
+**2. Are the chosen questions interesting?** 
+
+Yes. The report focused on investigating whether class sizes are associated with math performance while noting other sorts of associations might be possible. However, these "other" associations weren't pursued as they are beyond the scope of the project.
+
+**3. Does the report show that the authors understand the data set?** 
+
+Yes
+
+**4. Can the proposed methods answer these questions?** 
+
+Yes.
+
+**5. Is the report well-organized and clearly written?** 
+
+Yes, however some of the statements are somewhat unclear, e.g., the authors stated they provide a 99% Bonferroni confidence interval instead of a 99% $\it{family-wise}$ Bonferroni confidence interval.
+
+**6. Should the report be given extra credit?** 
+
+I don't think so. 
+
+
+**7. Please elaborate on your assessments and provide constructive feedback (no limit).** 
+
+I believe, overall, the authors of the report did a good job. The authors followed through with the minimum task required. However, it would be a lot better if the following are incorporated:
+
+1. It was implicitly assumed that the missing values in the data set could be missing at random, but there wasn't any thorough statistical analysis carried out to buttress this claim.
+
+2. Since these sorts of project reports are geared towards making policies, it might augur well that some of the results presented by the authors are given in the context of policymaking. This would help policymakers understand the effect of whatever decisions they are inclined towards.
+
+3. The writing style is sometimes unclear or not as precise as possible. Thus, the reader is left to fill in the gaps and might end up being unintentionally misinformed.
+
+4. There seemed to be a lack of consistency in the presentation of results, especially the tables. Some results are presented in an understandable and clean format while some are presented in raw R output. For example, the results of the one-way Anova and the Levene’s test for homoscedastic. The authors might want to spend some time extracting these results from the raw R output and restructuring it into a neat and nicely formatted table.
+
+
+**8. Please provide questions for authors to address during presentations.**
+
+1. What is the necessary information that must be provided about the aides before the authors can make causal inferences?
+
+2. If at all we are interested in investigating further, the effect of missing values on our analysis, how do we go about it?
+
+
+
