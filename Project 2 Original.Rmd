@@ -1,0 +1,120 @@
+---
+title: "Project 2"
+author: "Omotayo Abdul-Hakeem"
+date: "1/28/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(pacman)
+p_load(kableExtra,DescTools,stringr,dplyr,ggdistribute,ggplot2)
+```
+
+```{r  echo=FALSE, message=FALSE, warning=FALSE}
+filetab = "STAR_Students.tab"
+data = read.table(filetab, header = TRUE, sep = "\t", fill = TRUE)
+grade1_vars = names(data)[str_detect(names(data), "g1")]
+complt_dat = data[c("stdntid","g1schid","gender", "birthyear", "race", "yearsstar", grade1_vars)]
+complt_dat = complt_dat[!is.na(complt_dat$g1tmathss),]# missing teacher IDs among complete records? A: No
+
+complt_dat$g1_arm = as.factor(dplyr::recode(complt_dat$g1classtype, "1" = "Small class", "2" = "Regular class", "3" = "Regular + aide"))
+complt_dat$g1trace = as.factor(dplyr::recode(complt_dat$g1trace, "1" = "White", "2" = "Black", .default = NA_character_ ))
+complt_dat$g1thighdegree = as.factor(
+  dplyr::recode(
+    complt_dat$g1thighdegree, "2" = "Bachelor", "3" = "Master", "5"= "Specialist", "6"="PhD", .default = NA_character_ ))
+complt_dat$g1surban = as.factor(dplyr::recode(complt_dat$g1surban, "1" = "Inner-City", "2" = "Suburban", "3" = "Rural", "4"="Urban"))
+
+teachers = complt_dat %>%
+  group_by(g1tchid, g1schid, g1_arm, g1trace, g1thighdegree, g1tyears, g1classsize, g1surban) %>%
+  summarise(mean_g1 = mean(g1tmathss, na.rm = TRUE), 
+            median_g1 = median(g1tmathss, na.rm = TRUE),
+            sd_g1 = sd(g1tmathss, na.rm = TRUE))
+
+school_means = teachers %>%
+  group_by(g1schid) %>%
+  summarise(school_mean = mean(mean_g1, na.rm = TRUE))
+
+teachers = merge(teachers, school_means, by="g1schid")
+teachers$resid_mean_g1 = teachers$mean_g1 - teachers$school_mean
+teachers$g1tchid = as.factor(teachers$g1tchid)
+teachers$g1schid = as.factor(teachers$g1schid)
+
+
+# STAR_Harvard = read.spss("STAR_Students.sav",to.data.frame = TRUE)
+# 
+# data_backup_STAR = STAR_Harvard
+# 
+# data_comb = STAR_Harvard[, c('g1tmathss','g1tchid','g1classtype','g1schid')]
+# 
+# data_comb = data_comb[!duplicated(data_comb$g1tchid), ]
+# 
+# tcmean = aggregate(STAR_Harvard$g1tmathss, list(STAR_Harvard$g1tchid), mean, na.rm = TRUE)
+# 
+# colnames(tcmean) = c("g1tchid", "g1tcmean")
+# 
+# data = merge(tcmean,data_comb, by = "g1tchid")
+
+```
+```{r echo=FALSE, message=FALSE,result=FALSE, warning=FALSE, include=FALSE}
+
+
+
+
+model.fit = lm(teachers$mean_g1 ~ teachers$g1_arm +teachers$g1schid)
+
+summary.aov(model.fit)
+
+```
+
+## Tukey's Post-Hoc Analysis
+
+We now investigate the hypothesis that all class sizes have the same effect on the average math scaled scores for grade 1 teachers. We define our hypothesis as
+
+$H_0$: All class sizes have equal math scaled scores mean for grade 1 teachers VS $H_a$: Not all class sizes have equal math scaled scores mean for grade 1 teachers.
+
+From the result of our analysis of variance of the math scaled scores for the grade 1 teachers, we decide our data does not provide evidence towards the null hypothesis. Thus, we reject the null hypothesis. This implies there are significant differences in the average math scaled scores of teachers across the class types.  However, which class type can be said to be different and which class types are not distinguishable?  To understand this, we perform a pairwise comparison of the means of the class types. We obtain Tukey's family-wise significance level of 0.05. We have chosen Tukey's method over the Scheffe’s method because it provided a more conservative confidence interval in this case. We present the results from the Scheffe's method in the table below.
+
+```{r echo=FALSE, message=FALSE, result=FALSE, include=FALSE}
+
+ScheffeTest(aov(model.fit, data = data), ordered = TRUE, which="teachers$g1_arm")
+
+TukeyHSD(aov(model.fit, data = data), ordered = TRUE, which="teachers$g1_arm")
+
+```
+
+```{r echo=F}
+
+mean_diff = c(13.58,9.49,4.10)
+
+mean_up = c(18.82,14.93,9.63)
+
+mean_low = c(8.33,4.04,-1.45)
+
+mean_pval = c("<2e-16","0.00009" , "0.17" )
+
+mean_mat = matrix(c(mean_diff,mean_low,mean_up,mean_pval), nrow = 3, ncol = 4)
+
+row.names(mean_mat) = c("Small - Regular", "Small - Regular/aide", "Regular/aide - Regular")
+
+colnames(mean_mat)= c("mean difference", "confidence interval lower bound", "confidence interval upper bound", "Adj. P-values" )
+kable(mean_mat, format = "pandoc")
+
+```
+
+From the table, we observe that there is a significant difference between the class type means.  The teachers in small class types had better average math scaled scores when compared to those in the regular class type with or without an aide. Also, this analysis suggests that having teaching aides in regular classes does not provide any significant improvement in the average math scores for the teachers.
+
+To go beyond the vast evidence that suggests teachers in the small class type do have a better math scaled score than other class types and having aides does not improve teachers' average maths scaled scores, we explore the possibility of making causal statements. 
+
+
+### Rubin Causal Model Assumptions
+
+1. Stable unit treatment value assumption (SUTVA): Firstly, by design, the assignment of a teacher to a particular class type does not affect the potential outcomes of the other teachers. Secondly, the average math score of a teacher does not affect the average math score of other teachers. These two observations imply that potential outcomes are invariant to the random assignment of others. Therefore, with pure random assignment of teachers in project STAR, the differences in means identify the average treatment effect (ATE) and the average treatment effect on the treated (ATET).
+
+2. Random Assignment Conditional on Observables (Strong ignorability): One key structure in project star is the randomization of students and teachers to class types. However, it was not designed to evaluate so many other relationships between teachers and student achievement. Relationships such as race and gender could prove to confound and may have affected the results. Thus, it is quite hard to sufficiently verify there is ignorability of unconfoundedness and selection on observables. Nonetheless, the design provides a potentially compelling opportunity to take this for granted since random assignments of students and teachers should circumvent the confoundedness inherent in data on student achievements. 
+
+Considering some of the above assumptions could not be verified by design but are believed to be satisfied by project STAR, we could say potentially isolate the effects of the class types as the cause of the difference in teachers' average math scaled score performance. 
+
+
