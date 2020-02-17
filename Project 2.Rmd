@@ -91,7 +91,9 @@ mean_mat = matrix(c(mean_diff,mean_low,mean_up,mean_pval), nrow = 3, ncol = 4)
 row.names(mean_mat) = c("Small - Regular", "Small - Regular/aide", "Regular/aide - Regular")
 
 colnames(mean_mat)= c("mean difference", "confidence interval lower bound", "confidence interval upper bound", "Adj. P-values" )
-kable(mean_mat, format = "pandoc")
+
+kable(mean_mat, format = "pandoc", caption = "Table: A table showing the difference in mean of teachers' average math scaled score between class types, confidence interval fro the mean difference, and the corresponding adjusted p-values")
+
 
 ```
 
