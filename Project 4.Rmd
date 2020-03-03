@@ -1,0 +1,144 @@
+---
+title: "Project 4"
+author: "Omotayo Abdul-Hakeem"
+date: "2/27/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(pacman)
+p_load(caret, arsenal, tidyverse, kableExtra, data.table, randomForest)
+
+```
+
+```{r dataPreprocessing}
+
+
+# data = as.data.frame( fread("bank-full.csv"))
+# col_name <-  c("job", "marital","education", "default","housing","loan","day_of_week","month","poutcome","y", "contact", "group", "month.cat")
+#
+# data[col_name] <- lapply(data[col_name], factor)
+#
+# set.seed(1)
+#
+# data <- data %>% mutate(id = row_number())
+#
+# sapply(data, class)
+
+#
+bank0 = read.csv("bank-additional-full.csv", sep=";")
+# Remove duration variable
+bank0 = select(bank0, -duration)
+# Recode response as boolean
+bank0$y = bank0$y == "yes"
+bank0$y %>% table() %>% prop.table()
+# For reordering and binning the months
+month.list = c("mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec")
+bank0$month = factor(bank0$month, levels=month.list)
+hi_months = c("apr", "dec", "mar", "oct", "sep")
+# Big line for creating our new dataset
+bank = bank0 %>%
+  mutate(
+    # Categorize into high and low months
+    month.cat =
+      ifelse(month %in% hi_months, "high", "low"),
+    # Recode "yes" defaults as "unknowns" because there were only 3 yes's
+    default =
+      ifelse(default=="yes", "unknown", "no"),
+    age = age - mean(age)) %>%
+  # Drop variables that are redundant/unnecessary
+  select(-pdays, -previous)
+bank[bank$marital=="unknown","marital"] = "single"
+bank$group = ifelse(bank$y == 1, "Subscribed", "Not subscribed")
+full.formula = formula(y ~ age + I(age^2) + job + education + default + housing +
+                         loan + contact + month + day_of_week + campaign + poutcome + emp.var.rate +
+                         cons.price.idx + cons.conf.idx + euribor3m + nr.employed + marital)
+red.formula = formula(y ~ age + I(age^2) + contact + month + day_of_week + campaign +
+                        poutcome + emp.var.rate + cons.price.idx + cons.conf.idx +
+                        nr.employed)
+proper=function(x) paste0(toupper(substr(x, 1, 1)), tolower(substring(x, 2)))
+bank$job = proper(bank$job)
+bank$education = proper(bank$education)
+bank$default = proper(bank$default)
+bank$housing = proper(bank$housing)
+bank$loan = proper(bank$loan)
+bank$contact = proper(bank$contact)
+bank$day_of_week = proper(bank$day_of_week)
+bank$month = proper(bank$month)
+bank$poutcome = proper(bank$poutcome)
+bank$marital = proper(bank$marital)
+labels(bank)  <- c(job = 'Job category',
+                   education = 'Education',
+                   default = 'Credit in default',
+                   housing = 'Housing loan',
+                   loan = 'Personal loan',
+                   contact = 'Contact type',
+                   month = 'Last contact month',
+                   day_of_week = 'Last contact day of week',
+                   campaign = 'Number of contact for client',
+                   poutcome = 'Outcome of previous contact',
+                   emp.var.rate = 'Employment variation rate ',
+                   cons.price.idx = 'Consumer price index',
+                   cons.conf.idx = 'Consumer confidence index',
+                   euribor3m = 'Euribor 3 month rate',
+                   nr.employed = 'Nmber of employees',
+                   marital = 'Marital status')
+tab1 = tableby(group ~ job + education + default + housing +
+                 loan + contact + month + day_of_week + campaign + poutcome + emp.var.rate +
+                 cons.price.idx + cons.conf.idx + euribor3m + nr.employed + marital,
+               test = FALSE,
+               data=bank)
+summary(tab1, pfootnote = TRUE, text=TRUE)
+
+col_name <-  c("job", "marital","education", "default","housing","loan","day_of_week","month","poutcome","y", "contact", "group", "month.cat")
+
+bank[col_name] <- lapply(bank[col_name], factor)
+bank1 <- bank %>% mutate(id = row_number())
+
+trainSet =  bank1 %>% sample_frac(0.7)
+
+testSet = anti_join(bank1, trainSet, by = 'id')
+
+trainSet <- trainSet %>% select(-c("id","month.cat"))
+
+testSet <- testSet %>% select(-c("id","month.cat"))
+
+rf.full <- randomForest(full.formula, data = trainSet)
+predicted.full <- predict(rf.full, newdata = testSet %>% select(-"y"))
+observed.full <- testSet[,"y"]
+full_tab = table(predicted.full, observed.full)
+
+rf.red <- randomForest(red.formula, data = trainSet)
+
+predicted.red <- predict(rf.red, newdata = testSet %>% select(-"y"))
+observed.red <- testSet[,"y"]
+red_tab = table(predicted.red, observed.red )
+#
+red_concord = mean(predicted.red == observed.red)
+red_sens = red_tab[4] / sum(red_tab[3:4])
+red_spec = red_tab[1] / sum(red_tab[1:2])
+red_ppv = red_tab[4] / sum(red_tab[c(4,2)])
+red_npv = red_tab[1] / sum(red_tab[c(1,3)])
+full_concord = mean(predicted.full == observed.full)
+full_sens = full_tab[4] / sum(full_tab[3:4])
+full_spec = full_tab[1] / sum(full_tab[1:2])
+full_ppv = full_tab[4] / sum(full_tab[c(4,2)])
+full_npv = full_tab[1] / sum(full_tab[c(1,3)])
+
+
+```
+
+
+
+Let $X$ be the data matrix and $Y \in \mathbb{R}^{k}$ be the response vector. Suppose $Y_i$ is distributed as  $B(n_i, \pi_{i})$. Then , the probability of outcome events given the covariate values $X_{1}, ..., X_{p}$ is given as
+
+$\pi(x)$ = $\frac{e^{XB}}{1 + e^{XB}}$.
+
+We obtain the logit function:
+
+logit$[\pi(X)]$ = ln$[\frac{\pi(X)}{1 - \pi(X)}]$ = $XB$.
+
+The model defined above is know as the logistic regression model.
+
+

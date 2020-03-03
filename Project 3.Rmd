@@ -1,0 +1,97 @@
+---
+title: "Untitled"
+author: "Omotayo Abdul-Hakeem"
+date: "2/12/2020"
+output:
+  html_document: default
+  pdf_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(pacman)
+p_load(AER, tidyverse, GGally, gridExtra,grid,ggplot2,lattice,arsenal)
+data(Fatalities)
+```
+
+```{r a, echo=FALSE, fig.width = 8, fig.height = 8, fig.align='left'}
+
+
+fdf = Fatalities
+fdf = fdf[!is.na(fdf$jail),]
+fdf$drinkage2 = round(fdf$drinkage, digits = 0)
+fdf$frate = fdf$fatal / fdf$pop
+labels(fdf)  <- c(jail = 'Mandatory Jail Sentence', 
+                  spirits = "Spirits consumption",
+                  beertax = "Tax on case of beer",
+                  unemp = "Unemployment rate",
+                  dry = "Percent residing in 'dry' counties",
+                  youngdrivers = "Percent of drivers aged 15–24",
+                  drinkage2 = "Minimum legal drinking age",
+                  baptist = "Percent of southern baptist",
+                  miles = "Average miles per driver",
+                  breath = "Preliminary breath test law",
+                  service = "Mandatory community service",
+                  income = "Per capita personal income in 1987 dollars")
+
+fdf %>% filter(state != 'ca', state !=  'ny', state != 'pa', state != 'tx', state != 'il', state != 'fl', state != 'oh')
+
+new_england <- c('nh','vt','me','ma','ri','ct')
+plains <-  c('nd','sd','mn','ia','mo','ks','ne')
+rocky_mountain <- c('mt','wy','co','ut','id')
+far_west <- c('wa','or','nv','ca')
+southwest <- c('az','nm','tx','ok')
+southeast <- c('ar','la','ms','tn','ky','wv','va','nc','sc','ga','fl','al')
+great_lakes <- c('wi','il','mi','in','oh')
+mideast <- c('ny','pa','nj','de','md','dc')
+reg <- c('mideast','great_lakes','new_england','plains','rocky_mountain','far_west','southwest','southeast')
+fdf$region[fdf$state %in% great_lakes] <- 'great_lakes'
+fdf$region[fdf$state %in% southeast] <- 'southeast'
+fdf$region[fdf$state %in% southwest] <- 'southwest'
+fdf$region[fdf$state %in% far_west] <- 'far_west'
+fdf$region[fdf$state %in% rocky_mountain] <- 'rocky_mountain'
+fdf$region[fdf$state %in% midwest] <- 'mideast'
+fdf$region[fdf$state %in% plains] <- 'plains'
+fdf$region[fdf$state %in% new_england] <- 'new_england'
+
+
+p1 <- fdf %>% ggplot(aes(x=state, y=pop)) + geom_boxplot(position=position_dodge(.9)) +
+   stat_summary(fun.y=mean, geom="point", 
+                aes(group=year), position=position_dodge(.9), 
+                color="black", size=2) +
+   theme_bw()
+p2 <- fdf %>% ggplot(aes(x=state, y=frate)) + geom_boxplot(position=position_dodge(.9)) +
+   stat_summary(fun.y=mean, geom="point", 
+                aes(group=year), position=position_dodge(.9), 
+                color="black", size=2) +
+   theme_bw()
+grid.arrange(p1, p2, layout_matrix = cbind(c(1,2)))
+# p1 <- fdf %>% ggplot(aes(x=year, y=frate, color=region)) + geom_point() + geom_line(aes(group=state)) + theme(legend.position="none") 
+# 
+# p2 <- fdf %>% ggplot(aes(x=year, y=frate)) + geom_boxplot(position=position_dodge(.9)) +
+#   stat_summary(fun.y=mean, geom="point", 
+#                aes(group=year), position=position_dodge(.9), 
+#                color="black", size=2) +
+#   theme_bw()
+# 
+# p3 <- fdf %>% ggplot(aes(x=income, y=frate, color=region)) + geom_point() + geom_line(aes(group=state)) + theme(legend.position="none")
+# 
+# p4 <- fdf %>% ggplot(aes(x=income, y=frate)) + geom_boxplot(position=position_dodge(.9)) +
+#   stat_summary(fun.y=mean, geom="point", 
+#                aes(group=region), position=position_dodge(.9), 
+#                color="black", size=2) +
+#   theme_bw()
+# 
+# p5 <- fdf %>% ggplot(aes(x=spirits, y=frate, color=region)) + geom_point() + geom_line(aes(group=state)) + theme(legend.position="none")
+# 
+# p6 <- fdf %>% ggplot(aes(x=spirits, y=frate)) + geom_boxplot(position=position_dodge(.9)) +
+#   stat_summary(fun.y=mean, geom="point", 
+#                aes(group=region), position=position_dodge(.9), 
+#                color="black", size=2) +
+#   theme_bw()
+# 
+# grid.arrange(p1, p2, p3,p4,p5,p6, layout_matrix = rbind(c(1,2), c(3,4), c(5,6)))
+
+```

@@ -1,0 +1,52 @@
+---
+title: "MidtermPractice"
+author: "Omotayo Abdul-Hakeem"
+date: "2/23/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(pacman)
+p_load(tidyverse, arsenal)
+set.seed(1111)
+```
+
+```{r}
+
+
+
+n=4;
+
+# Predictors:
+Enterobacter= rep(1:3,3);
+Gluconobacter = rep(1:3,each=3)
+
+aov.E=rep(Enterobacter,each=4)
+aov.G=rep(Gluconobacter,each=4)
+
+# effects: 
+effect.E=5;
+effect.G=-3;
+effect.int= 2;
+aov.C= aov.E*effect.E+aov.G*effect.G+ effect.int*(aov.E*aov.G )^{-1}+rnorm(n*9)+4;
+
+
+
+raw.data= data.frame(cbind(aov.C,aov.E,aov.G));
+colnames(raw.data)=c("Celegans", "Enterobacter","Gluconobacter");
+
+anova.fit1<-aov(Celegans~as.factor(Enterobacter)+as.factor(Gluconobacter)+as.factor(Enterobacter)*as.factor(Gluconobacter),data=raw.data)
+
+anova.fit2<-aov(Celegans~as.factor(Gluconobacter),data=raw.data)
+
+
+means.table=model.tables(anova.fit2,"means");
+mean.data=aggregate(raw.data[,1], list(raw.data$Enterobacter, raw.data$Gluconobacter), mean);
+colnames(mean.data)=c("Enterobacter","Gluconobacter", "Celegans.mean");
+anova.mean<-aov(Celegans.mean~as.factor(Enterobacter)+as.factor(Gluconobacter),data=mean.data)
+
+
+
+
+```
