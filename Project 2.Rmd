@@ -62,9 +62,9 @@ summary.aov(model.fit)
 
 ## Tukey's Post-Hoc Analysis
 
-We now investigate the hypothesis that all class sizes have the same effect on the average math scaled scores for grade 1 teachers. We define our hypothesis as
+We now investigate the hypothesis that all class types have the same effect on the average math scaled scores for grade 1 teachers. We define our hypothesis as
 
-$H_0$: All class sizes have equal math scaled scores mean for grade 1 teachers VS $H_a$: Not all class sizes have equal math scaled scores mean for grade 1 teachers.
+$H_0$: All class types have equal math scaled scores mean for grade 1 teachers VS $H_a$: Not all class types have equal math scaled scores mean for grade 1 teachers.
 
 From the result of our analysis of variance of the math scaled scores for the grade 1 teachers, we decide our data does not provide evidence towards the null hypothesis. Thus, we reject the null hypothesis. This implies there are significant differences in the average math scaled scores of teachers across the class types.  However, which class type can be said to be different and which class types are not distinguishable?  To understand this, we perform a pairwise comparison of the means of the class types. We obtain Tukey's family-wise significance level of 0.05. We have chosen Tukey's method over the Scheffe’s method because it provided a more conservative confidence interval in this case. We present the results from the Scheffe's method in the table below.
 

@@ -3,30 +3,23 @@ title: "Project 4"
 author: "Omotayo Abdul-Hakeem"
 date: "2/27/2020"
 output: html_document
+editor_options: 
+  chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(arsenal)
+library(kableExtra)
 library(pacman)
-p_load(caret, arsenal, tidyverse, kableExtra, data.table, randomForest)
-
+library(randomForest)
+library(gbm)
+library(pROC)
 ```
 
-```{r dataPreprocessing}
+```{r a, echo=FALSE}
 
-
-# data = as.data.frame( fread("bank-full.csv"))
-# col_name <-  c("job", "marital","education", "default","housing","loan","day_of_week","month","poutcome","y", "contact", "group", "month.cat")
-#
-# data[col_name] <- lapply(data[col_name], factor)
-#
-# set.seed(1)
-#
-# data <- data %>% mutate(id = row_number())
-#
-# sapply(data, class)
-
-#
 bank0 = read.csv("bank-additional-full.csv", sep=";")
 # Remove duration variable
 bank0 = select(bank0, -duration)
@@ -38,25 +31,29 @@ month.list = c("mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "d
 bank0$month = factor(bank0$month, levels=month.list)
 hi_months = c("apr", "dec", "mar", "oct", "sep")
 # Big line for creating our new dataset
-bank = bank0 %>%
+bank = bank0 %>% 
   mutate(
     # Categorize into high and low months
-    month.cat =
+    month.cat = 
       ifelse(month %in% hi_months, "high", "low"),
-    # Recode "yes" defaults as "unknowns" because there were only 3 yes's
-    default =
+    # Recode "yes" defaults as "unknowns" because there were only 3 yes's 
+        default = 
       ifelse(default=="yes", "unknown", "no"),
-    age = age - mean(age)) %>%
+    age = age - mean(age),
+    age_sq = age^2) %>% 
   # Drop variables that are redundant/unnecessary
   select(-pdays, -previous)
 bank[bank$marital=="unknown","marital"] = "single"
-bank$group = ifelse(bank$y == 1, "Subscribed", "Not subscribed")
+#bank$group = ifelse(bank$y == 1, "Subscribed", "Not subscribed")
 full.formula = formula(y ~ age + I(age^2) + job + education + default + housing +
-                         loan + contact + month + day_of_week + campaign + poutcome + emp.var.rate +
+                          contact + month + day_of_week + campaign + poutcome + emp.var.rate +
                          cons.price.idx + cons.conf.idx + euribor3m + nr.employed + marital)
 red.formula = formula(y ~ age + I(age^2) + contact + month + day_of_week + campaign +
                         poutcome + emp.var.rate + cons.price.idx + cons.conf.idx +
                         nr.employed)
+red.formula2 = formula(y ~ poutcome + job + nr.employed + euribor3m)
+
+
 proper=function(x) paste0(toupper(substr(x, 1, 1)), tolower(substring(x, 2)))
 bank$job = proper(bank$job)
 bank$education = proper(bank$education)
@@ -68,6 +65,9 @@ bank$day_of_week = proper(bank$day_of_week)
 bank$month = proper(bank$month)
 bank$poutcome = proper(bank$poutcome)
 bank$marital = proper(bank$marital)
+col_name <-  c("job", "marital","education", "default","housing","loan","day_of_week","month","poutcome","y", "contact")
+bank = bank %>% select(-month.cat)
+bank[col_name] <- lapply(bank[col_name], factor)
 labels(bank)  <- c(job = 'Job category',
                    education = 'Education',
                    default = 'Credit in default',
@@ -84,61 +84,158 @@ labels(bank)  <- c(job = 'Job category',
                    euribor3m = 'Euribor 3 month rate',
                    nr.employed = 'Nmber of employees',
                    marital = 'Marital status')
-tab1 = tableby(group ~ job + education + default + housing +
-                 loan + contact + month + day_of_week + campaign + poutcome + emp.var.rate +
-                 cons.price.idx + cons.conf.idx + euribor3m + nr.employed + marital,
-               test = FALSE,
-               data=bank)
-summary(tab1, pfootnote = TRUE, text=TRUE)
 
-col_name <-  c("job", "marital","education", "default","housing","loan","day_of_week","month","poutcome","y", "contact", "group", "month.cat")
+# Training and test set
+set.seed(123)
+# bank = bank %>% select(-group)
 
-bank[col_name] <- lapply(bank[col_name], factor)
-bank1 <- bank %>% mutate(id = row_number())
+bank <- bank %>% mutate(id = row_number())
+trainSet =  bank %>% sample_frac(0.7)
+testSet = anti_join(bank, trainSet, by = 'id')
+trainSet <- trainSet %>% select(-c("id"))
+testSet <- testSet %>% select(-c("id"))
 
-trainSet =  bank1 %>% sample_frac(0.7)
+##################################
+# Logistic model
+# --- Full model
+fit_full <- glm(full.formula, data = trainSet, family = "binomial")
+summary(fit_full)
+full_probs = predict(object = fit_full, newdata = testSet, type="response")
+# full_preds = rep("Pred No", length(full_probs))
+# full_preds[full_probs > .5] = "Pred Yes"
+# full_tab = table(full_preds, testSet$y)
+# --- Reduced model
+fit_red <- glm(red.formula, data = trainSet, family = "binomial")
+summary(fit_red)
+red_probs = predict(object = fit_red, newdata = testSet, type="response")
+# red_preds = rep("Pred No", length(red_probs))
+# red_preds[red_probs > .5] = "Pred Yes"
+# red_tab = table(red_preds, testSet$y)
+# --- Reduced model2
+fit_red2 <- glm(red.formula2, data = trainSet, family = "binomial")
+summary(fit_red2)
+red_probs2 = predict(object = fit_red2, newdata = testSet, type="response")
+# red_preds2 = rep("Pred No", length(red_probs2))
+# red_preds2[red_probs2 > .5] = "Pred Yes"
+# red_tab2 = table(red_preds2, testSet$y)
 
-testSet = anti_join(bank1, trainSet, by = 'id')
 
-trainSet <- trainSet %>% select(-c("id","month.cat"))
-
-testSet <- testSet %>% select(-c("id","month.cat"))
+##################################
+# Random forest
 
 rf.full <- randomForest(full.formula, data = trainSet)
 predicted.full <- predict(rf.full, newdata = testSet %>% select(-"y"))
 observed.full <- testSet[,"y"]
-full_tab = table(predicted.full, observed.full)
-
+rand_full_tab = table(predicted.full, observed.full)
 rf.red <- randomForest(red.formula, data = trainSet)
-
 predicted.red <- predict(rf.red, newdata = testSet %>% select(-"y"))
 observed.red <- testSet[,"y"]
-red_tab = table(predicted.red, observed.red )
-#
-red_concord = mean(predicted.red == observed.red)
-red_sens = red_tab[4] / sum(red_tab[3:4])
-red_spec = red_tab[1] / sum(red_tab[1:2])
-red_ppv = red_tab[4] / sum(red_tab[c(4,2)])
-red_npv = red_tab[1] / sum(red_tab[c(1,3)])
-full_concord = mean(predicted.full == observed.full)
-full_sens = full_tab[4] / sum(full_tab[3:4])
-full_spec = full_tab[1] / sum(full_tab[1:2])
-full_ppv = full_tab[4] / sum(full_tab[c(4,2)])
-full_npv = full_tab[1] / sum(full_tab[c(1,3)])
+rand_red_tab = table(predicted.red, observed.red )
+rf.red2 <- randomForest(red.formula2, data = trainSet)
+predicted.red2 <- predict(rf.red2, newdata = testSet %>% select(-"y"))
+observed.red2 <- testSet[,"y"]
+rand_red_tab2 = table(predicted.red2, observed.red2)
 
 
+##################################
+# AdaBoost
+# Full Adaboost 
+trainSet$y <- unclass(trainSet$y) - 1
+testSet$y <- unclass(testSet$y) - 1
+boost.full = gbm(full.formula,
+                 data = trainSet, distribution = "adaboost", n.trees = 10000)
+boost.full.pred = predict(boost.full, testSet, n.trees = 10000, type = 'response')
+# cutoff = 0.2
+# boost.full.pred = boost.full.pred > cutoff
+# boost.full.pred = ifelse(boost.full.pred, "Pred Yes", "Pred No")
+# boost.full.tab = table(boost.full.pred, testSet$y)
+# AIC Adaboost
+boost.aic = gbm(red.formula,
+                data = trainSet, distribution = "adaboost", n.trees = 10000)
+boost.aic.pred = predict(boost.aic, testSet, n.trees = 10000, type = 'response')
+# cutoff = 0.2
+# boost.aic.pred = boost.aic.pred > cutoff
+# boost.aic.pred = ifelse(boost.aic.pred, "Pred Yes", "Pred No")
+# boost.aic.tab = table(boost.aic.pred, testSet$y)
+# RFE Adaboost
+boost.rfe = gbm(red.formula2,
+                data = trainSet, distribution = "adaboost", n.trees = 10000)
+boost.rfe.pred = predict(boost.rfe, testSet, n.trees = 10000, type = 'response')
+# cutoff = 0.2
+# boost.rfe.pred = boost.rfe.pred > cutoff
+# boost.rfe.pred = ifelse(boost.rfe.pred, "Pred Yes", "Pred No")
+# boost.rfe.tab = table(boost.rfe.pred, testSet$y)
+
+
+# ------
+# Function to calculate stats from tables
+# calc_table_stats = function(tab, name="") {
+#   concord = sum(tab[c(1,4)]) / sum(tab)
+#   sens = tab[4] / sum(tab[3:4])
+#   spec = tab[1] / sum(tab[1:2])
+#   ppv = tab[4] / sum(tab[c(4,2)])
+#   npv = tab[1] / sum(tab[c(1,3)])
+#   results = list("Name"=name, "Concordance"=concord, "Sensitivity"=sens, "Specificity"=spec, "PPV"=ppv, "NPV"=npv)
+#   return(results)
+# }
+# tab0 = rbind(calc_table_stats(full_tab, name="Logistic (Full)"),
+#              calc_table_stats(rand_full_tab, name="Random Forest (Full)"),
+#              calc_table_stats(boost.full.tab, name="AdaBoost (Full)"),
+#              calc_table_stats(red_tab, name="Logistic (AIC)"),
+#              calc_table_stats(rand_red_tab, name="Random Forest (AIC)"),
+#              calc_table_stats(boost.aic.tab, name="AdaBoost (AIC)"),
+#              calc_table_stats(red_tab2, name="Logistic (RFE)"),
+#              calc_table_stats(rand_red_tab2, name="Random Forest (RFE)"),
+#              calc_table_stats(boost.rfe.tab, name="AdaBoost (RFE)"))
+# View(data.frame(tab0))
 ```
 
+```{r roc}
 
+## Full formular
 
-Let $X$ be the data matrix and $Y \in \mathbb{R}^{k}$ be the response vector. Suppose $Y_i$ is distributed as  $B(n_i, \pi_{i})$. Then , the probability of outcome events given the covariate values $X_{1}, ..., X_{p}$ is given as
+plot.new()
+par(mfrow = c(1,1))
+par(pty = "s")
+full_log <- roc(response = testSet$y, predictor = as.numeric(full_probs), plot = TRUE, legacy.axes = TRUE, percent = TRUE, xlab = "False Positive", ylab = "True Positive", print.auc = TRUE)
 
-$\pi(x)$ = $\frac{e^{XB}}{1 + e^{XB}}$.
+full_RF <- roc(response = testSet$y, predictor = as.numeric(predicted.full), plot = TRUE, legacy.axes = TRUE, percent = TRUE, xlab = "False Positive", ylab = "True Positive", print.auc = TRUE)
 
-We obtain the logit function:
+full_ADB <- roc(response = testSet$y, predictor = boost.full.pred, plot = TRUE, legacy.axes = TRUE, percent = TRUE, xlab = "False Positive", ylab = "True Positive", print.auc = TRUE)
+par(pty = "s")
+plot(full_ADB, col = "red")
+lines(full_log, add = TRUE, col = "blue")
+lines(full_RF, add = TRUE, col = "green")
 
-logit$[\pi(X)]$ = ln$[\frac{\pi(X)}{1 - \pi(X)}]$ = $XB$.
+# plot(full_log, add = TRUE, col = "blue")
+# plot(full_RF, add = TRUE, col = "green")
 
-The model defined above is know as the logistic regression model.
+##Reduced AIC
 
+plot.new()
+par(mfrow = c(1,1))
+par(pty = "s")
+red1_log <- roc(response = testSet$y, predictor = as.numeric(red_probs), plot = TRUE, legacy.axes = TRUE, percent = TRUE, xlab = "False Positive", ylab = "True Positive", print.auc = TRUE)
 
+red1_RF <- roc(response = testSet$y, predictor = as.numeric(predicted.red), plot = TRUE, legacy.axes = TRUE, percent = TRUE, xlab = "False Positive", ylab = "True Positive", print.auc = TRUE)
+
+red1_ADB <-roc(response = testSet$y, predictor = boost.aic.pred, plot = TRUE, legacy.axes = TRUE, percent = TRUE, xlab = "False Positive", ylab = "True Positive", print.auc = TRUE)
+
+plot(red1_ADB, col = "red")
+lines(red1_log,  col = "blue")
+lines(red1_RF, col = "green")
+## Reduced RFE
+
+plot.new()
+
+red2_log <- roc(response = testSet$y, predictor = red_probs2, plot = TRUE, legacy.axes = TRUE, xlab = "False Positive", ylab = "True Positive", print.auc = TRUE)
+
+red2_RF <- roc(response = testSet$y, predictor = as.numeric(predicted.red2), plot = TRUE, legacy.axes = TRUE, xlab = "False Positive", ylab = "True Positive", print.auc = TRUE)
+
+red2_ADB <- roc(response = testSet$y, predictor = as.numeric(boost.rfe.pred), plot = TRUE, legacy.axes = TRUE, xlab = "False Positive", ylab = "True Positive", print.auc = TRUE)
+par(mfrow = c(1,1))
+par(pty = "s")
+plot(red2_ADB, col = "red")
+lines(red2_log, col = "blue")
+lines(red2_RF, col = "green")
+```
